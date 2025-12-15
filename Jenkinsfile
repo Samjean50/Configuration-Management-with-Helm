@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_REGISTRY = 'your-registry'
+        DOCKER_REGISTRY = 'docker.io'
         IMAGE_NAME = 'webapp'
         KUBECONFIG = credentials('kubeconfig-id')
         HELM_CHART_PATH = './webapp-chart'
@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/your-repo/webapp.git'
+                git branch: 'main', url: 'https://github.com/Samjean50/Configuration-Management-with-Helm/helm-jenkins-project/webapp.git'
             }
         }
         
