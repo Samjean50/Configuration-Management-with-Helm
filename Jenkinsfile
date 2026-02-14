@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Samjean50/Configuration-Management-with-Helm.git'
+                checkout scm
             }
         }
         
@@ -14,18 +14,6 @@ pipeline {
                     export KUBECONFIG=/var/lib/jenkins/.kube/config
                     kubectl config use-context minikube || true
                     kubectl get nodes
-                '''
-            }
-        }
-        
-        stage('Verify Tools') {
-            steps {
-                sh '''
-                    export KUBECONFIG=/var/lib/jenkins/.kube/config
-                    echo "Helm version:"
-                    helm version
-                    echo "Kubectl version:"
-                    kubectl version --client
                 '''
             }
         }
