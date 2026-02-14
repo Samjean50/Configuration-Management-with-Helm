@@ -3,14 +3,14 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_IMAGE = "samjean50/web-app"
+        DOCKER_IMAGE = "samjean50/my-web-app"
         HELM_CHART = "./helm-chart"
     }
     
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Samjean50/Configuration-Management-with-Helm/web-app.git'
+                git branch: 'main', url: 'https://github.com/Samjean50/Configuration-Management-with-Helm/my-web-app.git'
             }
         }
         
