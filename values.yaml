@@ -1,0 +1,52 @@
+replicaCount: 2
+
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  tag: "alpine"
+
+service:
+  type: ClusterIP  # Options: ClusterIP, NodePort, LoadBalancer
+  port: 80
+  # nodePort: 30080  # Uncomment if using NodePort
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: my-app.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""  # Leave empty to auto-generate
+
+
+autoscaling:
+  enabled: false  # Set to true to enable
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+    
+resources:
+  limits:
+    cpu: 100m
+    memory: 156Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# HTTPRoute configuration (Gateway API)
+httpRoute:
+  enabled: false
+  gatewayName: "my-gateway"
+  gatewayNamespace: "default"
+  hostnames:
+    - "my-app.example.com"
