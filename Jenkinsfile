@@ -1,10 +1,6 @@
 pipeline {
     agent any
     
-    environment {
-        KUBECONFIG = '/var/lib/jenkins/.kube/config'
-    }
-    
     stages {
         stage('Checkout') {
             steps {
@@ -12,13 +8,24 @@ pipeline {
             }
         }
         
+        stage('Setup Kubectl') {
+            steps {
+                sh '''
+                    export KUBECONFIG=/var/lib/jenkins/.kube/config
+                    kubectl config use-context minikube || true
+                    kubectl get nodes
+                '''
+            }
+        }
+        
         stage('Verify Tools') {
             steps {
                 sh '''
-                    echo "Checking required tools..."
+                    export KUBECONFIG=/var/lib/jenkins/.kube/config
+                    echo "Helm version:"
                     helm version
+                    echo "Kubectl version:"
                     kubectl version --client
-                    kubectl get nodes
                 '''
             }
         }
@@ -29,20 +36,10 @@ pipeline {
             }
         }
         
-        stage('Dry Run Deployment') {
-            steps {
-                sh '''
-                    helm upgrade --install my-release ./my-web-app \
-                        --namespace default \
-                        --dry-run \
-                        --debug
-                '''
-            }
-        }
-        
         stage('Deploy with Helm') {
             steps {
                 sh '''
+                    export KUBECONFIG=/var/lib/jenkins/.kube/config
                     helm upgrade --install my-release ./my-web-app \
                         --namespace default \
                         --set replicaCount=2 \
@@ -55,14 +52,15 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
-                    echo "Checking Helm release status..."
+                    export KUBECONFIG=/var/lib/jenkins/.kube/config
+                    echo "Helm releases:"
                     helm list
                     
-                    echo "Checking pods..."
-                    kubectl get pods -l app.kubernetes.io/instance=my-release
+                    echo "Pods:"
+                    kubectl get pods
                     
-                    echo "Checking services..."
-                    kubectl get svc my-release-my-web-app
+                    echo "Services:"
+                    kubectl get svc
                 '''
             }
         }
@@ -70,12 +68,10 @@ pipeline {
     
     post {
         success {
-            echo '✅ Helm deployment completed successfully!'
+            echo '✅ Deployment successful!'
         }
         failure {
-            echo '❌ Deployment failed! Check the logs above.'
-            sh 'helm list'
-            sh 'kubectl get pods'
+            echo '❌ Deployment failed!'
         }
     }
 }
