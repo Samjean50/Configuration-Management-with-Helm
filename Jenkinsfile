@@ -1,64 +1,81 @@
-
 pipeline {
     agent any
     
     environment {
-        DOCKER_IMAGE = "samjean50/my-web-app"
-        HELM_CHART = "./helm-chart"
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
     }
     
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Samjean50/Configuration-Management-with-Helm/my-web-app.git'
+                git branch: 'main', url: 'https://github.com/Samjean50/Configuration-Management-with-Helm.git'
             }
         }
         
-        stage('Build Docker Image') {
+        stage('Verify Tools') {
             steps {
-                script {
-                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
-                }
+                sh '''
+                    echo "Checking required tools..."
+                    helm version
+                    kubectl version --client
+                    kubectl get nodes
+                '''
             }
         }
         
-        stage('Push to Registry') {
+        stage('Lint Helm Chart') {
             steps {
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-credentials') {
-                        docker.image("${DOCKER_IMAGE}:${BUILD_NUMBER}").push()
-                        docker.image("${DOCKER_IMAGE}:${BUILD_NUMBER}").push('latest')
-                    }
-                }
+                sh 'helm lint my-web-app'
+            }
+        }
+        
+        stage('Dry Run Deployment') {
+            steps {
+                sh '''
+                    helm upgrade --install my-release ./my-web-app \
+                        --namespace default \
+                        --dry-run \
+                        --debug
+                '''
             }
         }
         
         stage('Deploy with Helm') {
             steps {
-                script {
-                    sh """
-                        helm upgrade --install my-app ${HELM_CHART} \
-                            --set image.tag=${BUILD_NUMBER} \
-                            --namespace default
-                    """
-                }
+                sh '''
+                    helm upgrade --install my-release ./my-web-app \
+                        --namespace default \
+                        --set replicaCount=2 \
+                        --wait \
+                        --timeout 5m
+                '''
             }
         }
         
         stage('Verify Deployment') {
             steps {
-                sh 'kubectl get pods'
-                sh 'kubectl get svc'
+                sh '''
+                    echo "Checking Helm release status..."
+                    helm list
+                    
+                    echo "Checking pods..."
+                    kubectl get pods -l app.kubernetes.io/instance=my-release
+                    
+                    echo "Checking services..."
+                    kubectl get svc my-release-my-web-app
+                '''
             }
         }
     }
     
     post {
         success {
-            echo 'Deployment successful!'
+            echo '✅ Helm deployment completed successfully!'
         }
         failure {
-            echo 'Deployment failed!'
+            echo '❌ Deployment failed! Check the logs above.'
+            sh 'helm list'
+            sh 'kubectl get pods'
         }
     }
 }
